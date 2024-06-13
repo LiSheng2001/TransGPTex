@@ -2,3 +2,7 @@ output*/
 test*/
 test*.py
 *.pyc
+
+build/
+dist/
+transgptex.egg-info/

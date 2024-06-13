@@ -9,7 +9,6 @@ import os
 
 @dataclass
 class Config:
-    engine: str = "glm"
     llm_model: str = "glm-4-air"
     end_point: str = "https://open.bigmodel.cn/api/paas/v4/"
     api_key: str = os.environ.get("LLM_API_KEY")

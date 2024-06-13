@@ -92,7 +92,7 @@ class Translator:
             for i, call_result in enumerate(call_results):
                 if isinstance(call_result, Exception):
                     # 待实现，主要是实现429的重试
-                    if call_result.body["code"] == "429":
+                    if call_result.status_code == "429":
                         continue
                     else:
                         raise call_result

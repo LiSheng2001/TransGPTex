@@ -31,7 +31,6 @@ def main(args=None):
     parser.add_argument("--own_tex_project", action="store_true", help="Translate the local tex project, if so url parameters fill in the path of the local tex project")
     
     # 翻译的语言模型设置
-    parser.add_argument("-engine", type=str, help="Select the LLM family used for translation. The optional parameters are openai, glm, and deepseek", default="glm")
     parser.add_argument("-llm_model", type=str, help="Select the LLM model to use", default="glm-4-air")
     parser.add_argument("-end_point", type=str, help="Inference endpoint url", default="https://open.bigmodel.cn/api/paas/v4/")
     parser.add_argument("-ENV_API_KEY_NAME", type=str, help="The name of the environment variable that holds the API KEY, which defaults to `LLM_API_KEY`", default="LLM_API_KEY")
@@ -53,7 +52,7 @@ def main(args=None):
 
     options = parser.parse_args(args)
 
-    for option in ["engine", "llm_model", "end_point", "qps", "system_prompt", "prompt_template", "chunk_size"]:
+    for option in ["llm_model", "end_point", "qps", "system_prompt", "prompt_template", "chunk_size"]:
         value = getattr(options, option)
         if value:
             setattr(config, option, value)
