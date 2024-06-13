@@ -46,7 +46,7 @@ def main(args=None):
     parser.add_argument("--language_to", type=str, default="Chinese")
 
     # 是否编译
-    parser.add_argument("--compile", action='store_true', help="whether need to compile tex project to pdf.(need xelatex)")
+    parser.add_argument("--no_compile", action='store_true', help="whether need to compile tex project to pdf.(need xelatex)")
 
     # 是否打印参数，主要是确认一下参数写对没
     parser.add_argument("--print_config", action='store_true')
@@ -82,7 +82,7 @@ def main(args=None):
     url = options.url
     output_path = options.o
     language_to = options.language_to
-    need_compile = options.compile
+    need_compile = not options.no_compile
 
     # 创建输出文件夹
     os.makedirs(output_path, exist_ok=True)
@@ -111,7 +111,7 @@ def main(args=None):
     if not is_single_tex_translate:
         translated_file_path = os.path.join(output_path, "translated_source")
         # 这里是翻译项目
-        # select_file(source_path, translated_file_path, language_to)
+        select_file(source_path, translated_file_path, language_to)
     else:
         if not source_path.endswith(".tex"):
             print(f"翻译单个tex文件请输入tex文件路径!")

@@ -14,7 +14,7 @@ setuptools.setup(
     description="Translate Latex articles through LLM and compile them into PDF",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/LiSheng2001/",
+    url="https://github.com/LiSheng2001/TransGPTex",
     packages=setuptools.find_packages(),
     include_package_data=True,
     install_requires=[
