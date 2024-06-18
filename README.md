@@ -5,6 +5,19 @@
 
 TransGPTex 是一个用于将 LaTeX 文章翻译成中文(或者其他语言)并编译成 PDF 的工具。它通过使用大型语言模型 (LLM) 来实现高质量的翻译。
 
+## 快速开始
+
+20240618更新：目前发现DeepSeek-V2-Coder模型在保留Latex代码方面比较优秀，翻译的Tex文件编译问题较glm-4-air和deepseek-v2-chat少。而且价格也依旧比较合理，因此之后打算迁移到默认以DeepSeek-V2-Coder模型为翻译后端的版本。
+
+目前可以直接这样使用DeepSeek-V2-Coder作为翻译LLM：
+```bash
+# 申请deepseek api key
+set LLM_API_KEY="申请的deepseek api key"
+
+# 翻译，使用deepseek
+tgtex https://arxiv.org/abs/xxxx.xxxxx -o "paper title" -llm_model deepseek-coder -end_point https://api.deepseek.com
+```
+
 ## 功能特性
 
 - 支持从 arXiv 直接下载 LaTeX 源码。

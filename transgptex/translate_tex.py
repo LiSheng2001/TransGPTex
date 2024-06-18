@@ -36,7 +36,7 @@ def translate_single_tex(tex_file_path: str, output_path: str, language_to: str)
     # 后处理，把占位符还原
     postprocess_tex = ""
     for line in translated_tex.split("\n"):
-        if line.startswith("ls_replace_holder_"):
+        if line.strip().startswith("ls_replace_holder_"):
             holder_index = line.replace("ls_replace_holder_", "")
             if holder_index.isdigit() and int(holder_index) >= 0 and int(holder_index) < len(holder_index_to_content):
                 holder_index = int(holder_index)
@@ -45,7 +45,7 @@ def translate_single_tex(tex_file_path: str, output_path: str, language_to: str)
             else:
                 print(f"{line} 疑似占位符但未解析成功...")
                 postprocess_tex += "\n" + line
-        elif line.startswith("====="):
+        elif line.strip().startswith("====="):
             # 可能是标识符被llm翻译进去了，忽略即可
             continue
         else:

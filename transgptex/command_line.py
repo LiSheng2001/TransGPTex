@@ -141,7 +141,8 @@ def main(args=None):
         print(f"查找到主tex文件为 {tex_to_compile} 准备开始编译...")
 
         subprocess.run(['xelatex', '-interaction=nonstopmode', tex_to_compile, '-output-directory=dist'], cwd=translated_file_path)
-        subprocess.run(['bibtex', tex_to_compile.rsplit('.', 1)[0], '-output-directory="../dist"'], cwd=translated_file_path)
+        # 这里是依赖编译产生的aux
+        subprocess.run(['bibtex', f"dist/{tex_to_compile.rsplit('.', 1)[0]}.aux"], cwd=translated_file_path)
         subprocess.run(['xelatex', '-interaction=nonstopmode', tex_to_compile, '-output-directory=dist'], cwd=translated_file_path)
         subprocess.run(['xelatex', '-interaction=nonstopmode', tex_to_compile, '-output-directory=dist'], cwd=translated_file_path)
 
