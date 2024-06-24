@@ -31,13 +31,18 @@ def translate_single_tex(tex_file_path: str, output_path: str, language_to: str)
 
     combined_texts = translator.translate_batch(tex_texts, language_to)
 
+    # 后处理，清除多余的```，deepseek会多加这样的符号，但latex中没有这个语法，如果源内容中没有可以直接移除
+    for i in range(len(combined_texts)):
+        if "```" not in tex_texts[i]:
+            combined_texts[i] = combined_texts[i].replace("```", "")
+
     translated_tex = "\n".join(combined_texts)
 
     # 后处理，把占位符还原
     postprocess_tex = ""
     for line in translated_tex.split("\n"):
         if line.strip().startswith("ls_replace_holder_"):
-            holder_index = line.replace("ls_replace_holder_", "")
+            holder_index = line.strip().replace("ls_replace_holder_", "")
             if holder_index.isdigit() and int(holder_index) >= 0 and int(holder_index) < len(holder_index_to_content):
                 holder_index = int(holder_index)
                 holder_content = holder_index_to_content[holder_index]

@@ -37,10 +37,51 @@ def search_main_tex(tex_dict: Dict[str, str]):
 comment_pattern = re.compile(r"(?<!\\)%.*")
 consecutive_line_breaks_pattern = re.compile(r"\n{3,}")
 bibliography_pattern = re.compile(r"\n?\\begin{thebibliography}.*?\\end{thebibliography}", re.DOTALL)
-include_or_input_pattern = re.compile(r"\n?(\\input|\\include|\\usepackage).*")
+include_or_input_pattern = re.compile(r"\n?(\\input|\\include|\\usepackage|\\newcommand|\\def).*")
 equation_pattern = re.compile(r"\n?\\begin{equation\*?}.*?\\end{equation\*?}", re.DOTALL)
 align_pattern = re.compile(r"\n?\\begin{align\*?}.*?\\end{align\*?}", re.DOTALL)
 
+
+def merge_placeholders(input_text: str, holder_index_to_content: List[str]):
+    """\
+    合并仅以"\n"分割的占位符，避免LLM操作时遇到大块的占位符时发生遗漏。
+    """
+    lines = input_text.split("\n")
+    result = []
+    prev_holder_index = None
+    # 记录原先两个非空行之间的换行符数量
+    temp_line_breaks = 0
+    
+    # 通过指针扫描的方式并合并
+    for i in range(len(lines)):
+        line = lines[i]
+
+        if line == "":
+            temp_line_breaks += 1
+        else:
+            # 看看上一个非空行是不是占位符开头的，是则吸收
+            if line.startswith("ls_replace_holder_") and len(result) > 0 and result[-1].startswith("ls_replace_holder_"):
+                # 吸收，注意更改上一个index对应的内容
+                current_holder_index = int(line.replace("ls_replace_holder_", ""))
+
+                # 将之前的占位符内容吸收到上一个的位置，注意恢复换行符
+                for _ in range(temp_line_breaks + 1):
+                    holder_index_to_content[prev_holder_index] += "\n"
+                holder_index_to_content[prev_holder_index] += holder_index_to_content[current_holder_index]
+            else:
+                # 直接加入上一行的尾部，如果开头有换行符忽略掉
+                if len(result) > 0:
+                    result[-1] = result[-1] + "".join(["\n" for _ in range(temp_line_breaks)])
+
+                # 这里需要额外判断一下该line是不是占位符，如果是则要记录对应的index
+                if line.startswith("ls_replace_holder_"):
+                    prev_holder_index = int(line.replace("ls_replace_holder_", ""))
+                
+                result.append(line)
+            # 置空换行符
+            temp_line_breaks = 0
+
+    return "\n".join(result)
 
 
 def preprocess_tex_content(tex_content: str):
@@ -73,6 +114,8 @@ def preprocess_tex_content(tex_content: str):
         if holder_content.startswith("\\usepackage"):
             holder_index_to_content[i] = "\\usepackage{xeCJK}\n\\usepackage{amsmath}\n" + holder_content
             break
-
+    
+    # 合并连续占位符
+    tex_content = merge_placeholders(tex_content, holder_index_to_content)
     
     return tex_content, holder_index_to_content
