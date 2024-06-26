@@ -48,6 +48,10 @@ class Translator:
         self.system_prompt = config.system_prompt
         self.promt_template = config.promt_template
 
+        # 记录一下总请求数和已完成请求数，用户友好交互
+        self.num_of_requests = 0
+        self.num_of_completed_requests = 0
+
     async def translate(self, text, language_to):
         system_prompt = self.system_prompt
         prompt = self.promt_template.format(language_to, text)
@@ -69,6 +73,11 @@ class Translator:
             model=config.llm_model,
             temperature=0.01,
         )
+
+        self.num_of_completed_requests += 1
+        # 每完成5个请求打印一下进度
+        if self.num_of_completed_requests % 5 == 0:
+            print(f"请求API中... 进度: {self.num_of_completed_requests} / {self.num_of_requests}")
 
         return completion.choices[0].message.content
     
@@ -93,6 +102,7 @@ class Translator:
                 if isinstance(call_result, Exception):
                     # 待实现，主要是实现429的重试
                     if call_result.status_code == "429":
+                        print(f"触发频次限制...如果频繁出现可能说明qps设置过大...")
                         continue
                     else:
                         raise call_result
@@ -109,5 +119,14 @@ class Translator:
 
     def translate_batch(self, texts: List[str], language_to):
         # return asyncio.run(self._translate_batch(texts, language_to))
+        # 初始化请求数和完成情况
+        self.num_of_requests = len(texts)
+        self.num_of_completed_requests = 0
+
+        # 异步请求
+        print(f"开始请求API进行翻译，总请求数: {self.num_of_requests}")
         loop = asyncio.get_event_loop()
-        return loop.run_until_complete(self._translate_batch(texts, language_to))
+        result = loop.run_until_complete(self._translate_batch(texts, language_to))
+        print(f"请求完成，开始执行后续操作...")
+
+        return result
