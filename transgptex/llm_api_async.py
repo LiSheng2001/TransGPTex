@@ -81,7 +81,7 @@ class Translator:
 
         return completion.choices[0].message.content
     
-    async def _translate_batch(self, texts: List[str], language_to, max_epoches=3):
+    async def _translate_batch(self, texts: List[str], language_to, max_epoches=10):
         undo_of_texts = [1] * len(texts)
         results = [None] * len(texts)
         epoch = 0
@@ -101,14 +101,21 @@ class Translator:
             for i, call_result in enumerate(call_results):
                 if isinstance(call_result, Exception):
                     # 待实现，主要是实现429的重试
-                    if call_result.status_code == "429":
+                    if call_result.status_code == 429:
                         print(f"触发频次限制...如果频繁出现可能说明qps设置过大...")
+                        continue
+                    elif call_result.status_code == 400:
+                        print(f"触发风控机制，该部分回退为原文...")
+                        task_index = call_index_list[i]
+                        undo_of_texts[task_index] = 0
+                        results[task_index] = texts[task_index]
                         continue
                     else:
                         raise call_result
                 else:
-                    undo_of_texts[i] = 0
-                    results[i] = call_result
+                    task_index = call_index_list[i]
+                    undo_of_texts[task_index] = 0
+                    results[task_index] = call_result
             
             # 进入下一个循环
             epoch += 1
