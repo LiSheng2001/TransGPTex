@@ -5,12 +5,13 @@
 Usage: 可执行文件的入口
 """
 
-from .download_paper import download_paper_source, get_arxiv_id, extract_tar_gz
+from .download_paper import download_paper_source, get_arxiv_id, extract_tar_gz, get_paper_title
 from .file_selector import select_file
 from .preprocess_tex import search_main_tex
 from .translate_tex import translate_single_tex
 from .config import config
 import os
+import re
 import sys
 import dataclasses
 import subprocess
@@ -25,14 +26,14 @@ def main(args=None):
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("url", help='arxiv paper url')
-    parser.add_argument("-o", type=str, help='output path', required=True)
+    parser.add_argument("-o", type=str, help='output path', default="default:path")
     # 翻译模式，默认翻译arXiv项目
     parser.add_argument("--single_tex", action="store_true", help="whether to translate a single tex file mode")
     parser.add_argument("--own_tex_project", action="store_true", help="Translate the local tex project, if so url parameters fill in the path of the local tex project")
     
     # 翻译的语言模型设置
-    parser.add_argument("-llm_model", type=str, help="Select the LLM model to use", default="glm-4-air")
-    parser.add_argument("-end_point", type=str, help="Inference endpoint url", default="https://open.bigmodel.cn/api/paas/v4/")
+    parser.add_argument("-llm_model", type=str, help="Select the LLM model to use", default="gpt-4o-mini")
+    parser.add_argument("-end_point", type=str, help="Inference endpoint url", default="https://api.openai.com/v1//")
     parser.add_argument("-ENV_API_KEY_NAME", type=str, help="The name of the environment variable that holds the API KEY, which defaults to `LLM_API_KEY`", default="LLM_API_KEY")
     parser.add_argument("-qps", type=int, default=5, help="Queries per second of LLM API")
 
@@ -46,6 +47,9 @@ def main(args=None):
 
     # 是否编译
     parser.add_argument("--no_compile", action='store_true', help="whether need to compile tex project to pdf.(need xelatex)")
+
+    # 是否使用缓存
+    parser.add_argument("--no_cache", action='store_true', help="whether to accept cached papers")
 
     # 是否打印参数，主要是确认一下参数写对没
     parser.add_argument("--print_config", action='store_true')
@@ -82,14 +86,24 @@ def main(args=None):
     output_path = options.o
     language_to = options.language_to
     need_compile = not options.no_compile
-
-    # 创建输出文件夹
-    os.makedirs(output_path, exist_ok=True)
+    use_cache = not options.no_cache
 
     # 开始下载/加载项目
     if need_download_arxiv:
         arxiv_id = get_arxiv_id(url)
-        download_paper_source(arxiv_id, output_path)
+        
+        if output_path == "default:path":
+            # 如果不指定路径默认路径改为以title1开头
+            title = get_paper_title(arxiv_id)
+            # 修改一下无法放入路径的特殊符号为下划线
+            title = re.sub(r'[<>:"/\\|?*\0]', "_", title)
+            output_path = title + "/"
+            print(f"未指定路径，使用论文标题路径: {output_path}")
+        
+        # 创建输出文件夹
+        os.makedirs(output_path, exist_ok=True)
+
+        download_paper_source(arxiv_id, output_path, use_cache)
         # 创建源码储存路径
         source_path = os.path.join(output_path, "source")
         os.makedirs(source_path, exist_ok=True)
@@ -97,6 +111,13 @@ def main(args=None):
         # 解压
         extract_tar_gz(os.path.join(output_path, f"{arxiv_id}.tar.gz"), source_path)
     else:
+        # 创建输出文件夹
+        if output_path == "default:path":
+            # 如果没有合适路径则退出
+            print(f"请通过-o指定输出路径!")
+            sys.exit(102)
+        os.makedirs(output_path, exist_ok=True)
+
         if url.endswith(".tar.gz"):
             # 如果是未解压的路径的话，就地解压
             file_dir = os.path.dirname(url)

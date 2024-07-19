@@ -25,11 +25,21 @@ def get_arxiv_id(url: str):
     
     return arxiv_id
 
-def download_paper_source(arxiv_id: str, output_path: str):
+
+def get_paper_title(arxiv_id: str):
+    paper = next(arxiv.Client().results(arxiv.Search(id_list=[arxiv_id])))
+    return paper.title
+
+
+def download_paper_source(arxiv_id: str, output_path: str, use_cache: bool=True):
     print(f"开始下载arXiv论文... arxiv_id: {arxiv_id}")
     paper = next(arxiv.Client().results(arxiv.Search(id_list=[arxiv_id])))
-    paper.download_source(dirpath=output_path, filename=f"{arxiv_id}.tar.gz")
-    print(f"论文源码下载成功!")
+    
+    if os.path.exists(os.path.join(output_path, f"{arxiv_id}.tar.gz")) and use_cache:
+        print(f"检测到已下载源码，跳过下载...")
+    else:
+        paper.download_source(dirpath=output_path, filename=f"{arxiv_id}.tar.gz")
+        print(f"论文源码下载成功!")
 
 
 def extract_tar_gz(file_path, extract_path='.'):
