@@ -9,10 +9,10 @@ import os
 
 @dataclass
 class Config:
-    llm_model: str = "glm-4-air"
-    end_point: str = "https://open.bigmodel.cn/api/paas/v4/"
+    llm_model: str = "gpt-4o-mini"
+    end_point: str = "https://api.openai.com/v1/"
     api_key: str = os.environ.get("LLM_API_KEY")
-    qps: int = 5
+    qps: int = 3
     chunk_size: int = 4000
     system_prompt: str = "You are a professional, authentic machine translation engine."
     promt_template: str = """\
