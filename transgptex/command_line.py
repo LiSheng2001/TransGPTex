@@ -7,13 +7,14 @@ Usage: 可执行文件的入口
 
 from .download_paper import download_paper_source, get_arxiv_id, extract_tar_gz, get_paper_title
 from .file_selector import select_file
-from .preprocess_tex import search_main_tex
+from .preprocess_tex import search_main_tex, search_bib_tex
 from .translate_tex import translate_single_tex
 from .config import config
 import os
 import re
 import sys
 import dataclasses
+import shutil
 import subprocess
 
 
@@ -161,9 +162,22 @@ def main(args=None):
         tex_to_compile = search_main_tex(candidate_tex_files)
         print(f"查找到主tex文件为 {tex_to_compile} 准备开始编译...")
 
+        need_bibtex = search_bib_tex(translated_file_path)
+
         subprocess.run(['xelatex', '-interaction=nonstopmode', tex_to_compile, '-output-directory=dist'], cwd=translated_file_path)
         # 这里是依赖编译产生的aux
-        subprocess.run(['bibtex', f"dist/{tex_to_compile.rsplit('.', 1)[0]}.aux"], cwd=translated_file_path)
+        if need_bibtex:
+            # 一般情况下都是走该分支，通过bibtex生成bbl参考文献
+            subprocess.run(['bibtex', f"dist/{tex_to_compile.rsplit('.', 1)[0]}.aux"], cwd=translated_file_path)
+        else:
+            # 但也有少部分情况是没有提供bib，直接提供了bbl文件的，这里直接将根目录下所有bbl复制到dist目录下
+            # 因为根本没bib文件，所以bibtex编译不出东西
+            dist_path = os.path.join(translated_file_path, "dist")
+            os.makedirs(dist_path, exist_ok=True)
+            for ts_file in os.listdir(translated_file_path):
+                if ts_file.endswith(".bbl"):
+                    shutil.copy(os.path.join(translated_file_path, ts_file), os.path.join(dist_path, ts_file))
+
         subprocess.run(['xelatex', '-interaction=nonstopmode', tex_to_compile, '-output-directory=dist'], cwd=translated_file_path)
         subprocess.run(['xelatex', '-interaction=nonstopmode', tex_to_compile, '-output-directory=dist'], cwd=translated_file_path)
 

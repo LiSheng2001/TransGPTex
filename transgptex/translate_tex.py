@@ -87,6 +87,10 @@ def postprocess_tex_content(translated_tex_texts: List[str], original_tex_texts:
     for i in range(len(translated_tex_texts)):
         if "```" not in original_tex_texts[i]:
             translated_tex_texts[i] = translated_tex_texts[i].replace("```", "")
+        
+        # 已知gpt-4o-mini会在\end{abstract}后加\end{document}，导致编译停止。做一下替换回避问题
+        if "\end{document}" in translated_tex_texts[i] and "\end{document}" not in original_tex_texts[i]:
+            translated_tex_texts[i] = translated_tex_texts[i].replace("\end{document}", "")
 
     translated_tex = "\n".join(translated_tex_texts)
 

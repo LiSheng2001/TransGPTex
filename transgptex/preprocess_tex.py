@@ -7,6 +7,7 @@ Usage: 预处理tex文件的函数
 from typing import Any, List, Dict, Union
 import sys
 import re
+import os
 
 def search_main_tex(tex_dict: Dict[str, str]):
     # 搜寻主tex文件，主要有几个特征点
@@ -32,6 +33,14 @@ def search_main_tex(tex_dict: Dict[str, str]):
     
     return max(main_tex_score, key=main_tex_score.get)
 
+
+def search_bib_tex(file_dir: str):
+    # 查找当前目录下是否存在`.bib`文件
+    for file in os.listdir(file_dir):
+        if file.endswith(".bib"):
+            return True
+    
+    return False
 
 # 辅助的正则表达式
 comment_pattern = re.compile(r"(?<!\\)%.*")
