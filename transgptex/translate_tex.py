@@ -82,6 +82,16 @@ def generate_tex_chunks(tex_file_path: str):
     return tex_texts, holder_index_to_content
 
 
+command_adhesion_pattern = re.compile(r"(?<=[\u4e00-\u9fa5\u3000-\u303f\uFF00-\uFFEF])(\\[a-zA-Z\d\{\}_\-]*)(?=[\u4e00-\u9fa5\u3000-\u303f\uFF00-\uFFEF])")
+
+def handle_command_adhesion(text):
+    # 处理命令粘连问题，比如`一种基于\modelname的数据选择器`处理为`一种基于 \modelname 的数据选择器`从而减少编译错误
+    return command_adhesion_pattern.sub(r" \1 ", text)
+
+def postprocess_tex_line(text):
+    # 最后的行处理，目前用于处理命令粘连
+    return handle_command_adhesion(text)
+
 def postprocess_tex_content(translated_tex_texts: List[str], original_tex_texts: List[str], holder_index_to_content, output_path: str):
     # 后处理，清除多余的```，deepseek会多加这样的符号，但latex中没有这个语法，如果源内容中没有可以直接移除
     for i in range(len(translated_tex_texts)):
@@ -91,6 +101,10 @@ def postprocess_tex_content(translated_tex_texts: List[str], original_tex_texts:
         # 已知gpt-4o-mini会在\end{abstract}后加\end{document}，导致编译停止。做一下替换回避问题
         if "\end{document}" in translated_tex_texts[i] and "\end{document}" not in original_tex_texts[i]:
             translated_tex_texts[i] = translated_tex_texts[i].replace("\end{document}", "")
+
+        # 在latex里`\\`后面如果接一个换行符是没问题的，但如果接了几个换行符再编译就会出错，用正则表达式检索一下
+        if "\\\\\n" in translated_tex_texts[i]:
+            translated_tex_texts[i] = re.sub(r"\\\\\s*\n+", r"\\\\\n", translated_tex_texts[i])
 
     translated_tex = "\n".join(translated_tex_texts)
 
@@ -105,12 +119,12 @@ def postprocess_tex_content(translated_tex_texts: List[str], original_tex_texts:
                 postprocess_tex += "\n" + holder_content
             else:
                 print(f"{line} 疑似占位符但未解析成功...")
-                postprocess_tex += "\n" + line
+                postprocess_tex += "\n" + postprocess_tex_line(line)
         elif line.strip().startswith("====="):
             # 可能是标识符被llm翻译进去了，忽略即可
             continue
         else:
-            postprocess_tex += "\n" + line
+            postprocess_tex += "\n" + postprocess_tex_line(line)
 
     # 写入文件
     with open(output_path, "w", encoding="utf-8") as f:
