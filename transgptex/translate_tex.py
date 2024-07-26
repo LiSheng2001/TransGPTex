@@ -83,10 +83,14 @@ def generate_tex_chunks(tex_file_path: str):
 
 
 command_adhesion_pattern = re.compile(r"(?<=[\u4e00-\u9fa5\u3000-\u303f\uFF00-\uFFEF])(\\[a-zA-Z\d\{\}_\-]*)(?=[\u4e00-\u9fa5\u3000-\u303f\uFF00-\uFFEF])")
+command_adhesion_pattern2 = re.compile(r"(\\[a-zA-Z\d\{\}_\-]*)(?=[\u4e00-\u9fa5\u3000-\u303f\uFF00-\uFFEF])")
+
 
 def handle_command_adhesion(text):
     # 处理命令粘连问题，比如`一种基于\modelname的数据选择器`处理为`一种基于 \modelname 的数据选择器`从而减少编译错误
-    return command_adhesion_pattern.sub(r" \1 ", text)
+    text = command_adhesion_pattern.sub(r" \1 ", text)
+    text = command_adhesion_pattern2.sub(r"\1 ", text)
+    return text
 
 def postprocess_tex_line(text):
     # 最后的行处理，目前用于处理命令粘连
@@ -101,10 +105,6 @@ def postprocess_tex_content(translated_tex_texts: List[str], original_tex_texts:
         # 已知gpt-4o-mini会在\end{abstract}后加\end{document}，导致编译停止。做一下替换回避问题
         if "\end{document}" in translated_tex_texts[i] and "\end{document}" not in original_tex_texts[i]:
             translated_tex_texts[i] = translated_tex_texts[i].replace("\end{document}", "")
-
-        # 在latex里`\\`后面如果接一个换行符是没问题的，但如果接了几个换行符再编译就会出错，用正则表达式检索一下
-        if "\\\\\n" in translated_tex_texts[i]:
-            translated_tex_texts[i] = re.sub(r"\\\\\s*\n+", r"\\\\\n", translated_tex_texts[i])
 
     translated_tex = "\n".join(translated_tex_texts)
 

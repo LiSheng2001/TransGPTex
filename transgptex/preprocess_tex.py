@@ -49,7 +49,50 @@ bibliography_pattern = re.compile(r"\n?\\begin{thebibliography}.*?\\end{thebibli
 include_or_input_pattern = re.compile(r"\n?(\\input|\\include|\\usepackage|\\newcommand|\\def).*")
 equation_pattern = re.compile(r"\n?\\begin{equation\*?}.*?\\end{equation\*?}", re.DOTALL)
 align_pattern = re.compile(r"\n?\\begin{align\*?}.*?\\end{align\*?}", re.DOTALL)
+single_line_comments = re.compile(r'^\s*%.*\n?', re.MULTILINE) # 查找独立的单行注释
+table_pattern = re.compile(r"^[ \t]*\\begin{table\*?}.*?\\end{table\*?}", re.MULTILINE | re.DOTALL) # 查找表格
+pdfoutput_pattern = re.compile(r"\\pdfoutput=1")
 
+
+# 搜索tex中的函数体，因为存在嵌套关系没办法用正则简单地解决，因此通过遍历进行嵌套匹配
+def match_nested_method_calls(s: str, method_name: str, left_char="{", right_char="}"):
+    def find_matching_paren(s, start):
+        stack = []
+        i = start
+        while i < len(s):
+            if s[i] == left_char:
+                stack.append(i)
+            elif s[i] == right_char:
+                stack.pop()
+                if not stack:
+                    return i
+            elif s[i] == "\\":
+                # 处理转义符，实际是跳过下一个字符
+                i += 1
+            elif s[i] == "%":
+                # 处理注释，注释里的括号不作统计
+                i += 1
+                while i < len(s) and s[i] != "\n":
+                    i += 1
+            i += 1
+        return -1
+
+    pattern = r"^[ \t]*" + re.escape(method_name) + f"\\{left_char}"
+    matches = []
+    i = 0
+
+    while i < len(s):
+        match = re.search(pattern, s[i:], re.MULTILINE)
+        if not match:
+            break
+        start = i + match.start()
+        end = find_matching_paren(s, start + len(method_name))
+        if end != -1:
+            matches.append(s[start:end + 1])
+            i = end + 1
+        else:
+            i = start + len(method_name)
+    return matches
 
 def merge_placeholders(input_text: str, holder_index_to_content: List[str]):
     """\
@@ -95,11 +138,32 @@ def merge_placeholders(input_text: str, holder_index_to_content: List[str]):
 
 def preprocess_tex_content(tex_content: str):
     # 预处理tex文件，主要有以下几个操作：
-    # 1. 清除tex文件的所有注释
+    # 1. 清除tex文件的所有注释，但对于\author、\begin{table}代码块中的注释要执行严格清除减少编译错误
     # 2. 将多于2个的连续换行符更改为2个
     # 3. 将\input, \include, \begin{thebibliography}, \usepackage等不需要翻译的行/块单独提出
     # 4. 宏注入，为第一个\use_package序列注入\usepackage{xeCJK}和\usepackage{amsmath}包以便能顺利编译中文
+
+    # \author内部严格移除单行注释
+    author_infos = match_nested_method_calls(tex_content, "\\author")
+    if len(author_infos) > 0:
+        # 默认应该只有一个的
+        if len(author_infos) > 1:
+            print(f"匹配到多个作者信息，可能存在一些问题...")
+        for author_info in author_infos:
+            # 严格移除单行注释
+            processed_author_info = single_line_comments.sub("", author_info)
+            tex_content = tex_content.replace(author_info, processed_author_info)
+    
+    # \begin{table}内部严格移除单行注释
+    table_infos = table_pattern.findall(tex_content)
+    for table_info in table_infos:
+        processed_table_info = single_line_comments.sub("", table_info)
+        tex_content = tex_content.replace(table_info, processed_table_info)
+
+    # 其他地方的注释正常移除
     tex_content = comment_pattern.sub("", tex_content)
+    # 移除\pdfoutput=1
+    tex_content = pdfoutput_pattern.sub("", tex_content)
     tex_content = consecutive_line_breaks_pattern.sub("\n\n", tex_content)
 
     # 占位符计数

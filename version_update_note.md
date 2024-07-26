@@ -1,5 +1,38 @@
 版本更新说明
 
+## v0.0.11
+
+v0.0.10的第2个修复理解有误，实际上在\author和\begin{table}包裹的命令中，对换行符很敏感，因为涉及到一些对齐问题。所以每次移除"%"注释必须完全移除。但对于需要的空行也不能随意更改，否则也会触发编译错误，如：
+```latex
+\begin{table}[t]
+    \centering
+    \begin{tabular}{p{100mm}}
+    \toprule
+    你是一个标签系统，为指令意图提供有用的标签，以区分有用的AI助手的指令。以下是一个指令：\\
+    
+    [begin]
+    
+    \{instruction\}
+    
+    [end]
+    
+    请提供粗粒度标签，例如“拼写和语法检查”和“角色扮演”，以识别上述指令的主要意图。
+    你的回答应该是一个列表，包括标签的标题和每个标签的简要说明。
+    你的回答必须严格遵循此JSON格式：[{"tag": str, "explanation": str}]。
+    请用英语回答。 \\
+    \bottomrule
+    \end{tabular}
+    \caption{\textsc{ChatGPT} 用于注释给定查询意图标签的提示模板。}
+    \label{tab:tagging_prompt}
+\end{table}
+```
+
+这里面\[begin\]前面的两个换行符不可以随意移除，否则会编译错误。
+
+因此这版撤销v0.0.10的第2个改动，转为对\author和\begin{table}包裹的命令使用严格的单行注释清除。
+
+另外，`\pdfToLatex=1`这个命令对于xelatex没啥用，可以直接移除掉。
+
 ## v0.0.10
 
 修复了两个可能比较常见的bad case
