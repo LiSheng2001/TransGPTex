@@ -8,10 +8,9 @@ TransGPTex 是一个用于将 LaTeX 文章翻译成中文(或者其他语言)并
 ## 快速开始
 
 20240719更新：openai推出了便宜的gpt-4o-mini模型，速度快、在latex方面效果也很不错，因此之后打算迁移到默认以gpt-4o-mini模型为翻译后端的版本。
-20240719更新：openai推出了便宜的gpt-4o-mini模型，速度快、在latex方面效果也很不错，因此之后打算迁移到默认以gpt-4o-mini模型为翻译后端的版本。
 
 目前可以直接这样使用gpt-4o-mini作为翻译LLM：
-目前可以直接这样使用gpt-4o-mini作为翻译LLM：
+
 ```bash
 # 申请llm api key，windows使用set，linux使用export
 set LLM_API_KEY="申请的llm api key"

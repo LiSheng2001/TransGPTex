@@ -14,6 +14,10 @@ def get_arxiv_id(url: str):
         url = url.lstrip("https://")
     elif url.startswith("http://"):
         url = url.lstrip("https://")
+    
+    # 去除www.
+    if url.startswith("www."):
+        url = url.lstrip("www.")
 
     if url.startswith("arxiv.org/abs/"):
         arxiv_id = url.lstrip("arxiv.org/abs/")

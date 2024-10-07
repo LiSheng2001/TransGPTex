@@ -50,7 +50,7 @@ include_or_input_pattern = re.compile(r"\n?(\\input|\\include|\\usepackage|\\new
 equation_pattern = re.compile(r"\n?\\begin{equation\*?}.*?\\end{equation\*?}", re.DOTALL)
 align_pattern = re.compile(r"\n?\\begin{align\*?}.*?\\end{align\*?}", re.DOTALL)
 single_line_comments = re.compile(r'^\s*%.*\n?', re.MULTILINE) # 查找独立的单行注释
-table_pattern = re.compile(r"^[ \t]*\\begin{table\*?}.*?\\end{table\*?}", re.MULTILINE | re.DOTALL) # 查找表格
+table_pattern = re.compile(r"^[ \t]*\\begin{(?:table|figure|axis)\*?}.*?\\end{(?:table|figure|axis)\*?}", re.MULTILINE | re.DOTALL) # 查找表格、图片和axis
 pdfoutput_pattern = re.compile(r"\\pdfoutput=1")
 
 
@@ -143,25 +143,8 @@ def preprocess_tex_content(tex_content: str):
     # 3. 将\input, \include, \begin{thebibliography}, \usepackage等不需要翻译的行/块单独提出
     # 4. 宏注入，为第一个\use_package序列注入\usepackage{xeCJK}和\usepackage{amsmath}包以便能顺利编译中文
 
-    # \author内部严格移除单行注释
-    author_infos = match_nested_method_calls(tex_content, "\\author")
-    if len(author_infos) > 0:
-        # 默认应该只有一个的
-        if len(author_infos) > 1:
-            print(f"匹配到多个作者信息，可能存在一些问题...")
-        for author_info in author_infos:
-            # 严格移除单行注释
-            processed_author_info = single_line_comments.sub("", author_info)
-            tex_content = tex_content.replace(author_info, processed_author_info)
-    
-    # \begin{table}内部严格移除单行注释
-    table_infos = table_pattern.findall(tex_content)
-    for table_info in table_infos:
-        processed_table_info = single_line_comments.sub("", table_info)
-        tex_content = tex_content.replace(table_info, processed_table_info)
-
-    # 其他地方的注释正常移除
-    tex_content = comment_pattern.sub("", tex_content)
+    # 10.07更新，为了减少编译时带来的奇怪bug，统一严格移除单行注释
+    tex_content = single_line_comments.sub("", tex_content)
     # 移除\pdfoutput=1
     tex_content = pdfoutput_pattern.sub("", tex_content)
     tex_content = consecutive_line_breaks_pattern.sub("\n\n", tex_content)
