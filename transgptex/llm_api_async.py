@@ -8,6 +8,7 @@ import time
 import asyncio
 from openai import AsyncOpenAI
 import os
+import re
 
 from typing import Any, List, Optional, Union
 from .config import config
@@ -48,13 +49,21 @@ class Translator:
         self.system_prompt = config.system_prompt
         self.promt_template = config.promt_template
 
+        # cot的prompt
+        self.cot_prompt = config.cot_prompt_template
+
         # 记录一下总请求数和已完成请求数，用户友好交互
         self.num_of_requests = 0
         self.num_of_completed_requests = 0
 
     async def translate(self, text, language_to):
-        system_prompt = self.system_prompt
-        prompt = self.promt_template.format(language_to, text)
+        # 选择是否使用COT
+        if not config.use_cot:
+            system_prompt = self.system_prompt
+            prompt = self.promt_template.format(language_to, text)
+        else:
+            system_prompt = ""
+            prompt = self.cot_prompt.format(language_to, text)
 
         # 请求锁
         await self.rate_limiter.acquire()
@@ -78,8 +87,17 @@ class Translator:
         # 每完成5个请求打印一下进度
         if self.num_of_completed_requests % 5 == 0:
             print(f"请求API中... 进度: {self.num_of_completed_requests} / {self.num_of_requests}")
+        # 如果是COT取请求还得处理一下
+        content = completion.choices[0].message.content
+        if config.use_cot:
+            pattern = r'\[result\]\s*content\s*=\s*"""\s*\n(.*?)\s*\n"""'
+            result = re.search(pattern, content, re.DOTALL)
+            if result:
+                content = result.group(1)
+            else:
+                print("cot返回结果的格式错误!")
 
-        return completion.choices[0].message.content
+        return content
     
     async def _translate_batch(self, texts: List[str], language_to, max_epoches=10):
         undo_of_texts = [1] * len(texts)

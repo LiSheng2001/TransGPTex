@@ -19,6 +19,14 @@ set LLM_API_KEY="申请的llm api key"
 tgtex https://arxiv.org/abs/xxxx.xxxxx -o "paper title" -llm_model gpt-4o-mini -end_point {api端点 官方或者中转端点}
 ```
 
+引入了思维链(cot)，默认是关闭的以节省token，毕竟cot很玄学，也不一定就比让LLM直接翻译好。开启之后，会让LLM根据要翻译的段落先进行思考，思考之后再进行正式翻译，以减少LLM翻译的生硬感，提高LLM的准确性。
+目前的cot仅加入思考流程，未来可以考虑将论文标题和论文摘要当作上下文输入给模型，以让LLM感知到要翻译的论文片段对应的上下文信息。
+使用`--use_cot`开启思维链式翻译，目前比较推荐用deepseek的模型进行cot翻译。
+```bash
+# cot翻译，使用deepseek-chat模型
+tgtex https://arxiv.org/abs/xxxx.xxxxx -o "paper title" -llm_model deepseek-chat -end_point {api端点 官方或者中转端点} --use_cot
+```
+
 ## 功能特性
 
 - 支持从 arXiv 直接下载 LaTeX 源码。

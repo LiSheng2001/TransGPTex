@@ -41,6 +41,7 @@ def main(args=None):
     # 翻译的prompt设置
     parser.add_argument("--system_prompt", type=str, default=None)
     parser.add_argument("--prompt_template", type=str, default=None)
+    parser.add_argument("--use_cot", action='store_true', help="whether to use cot prompt")
 
     # 翻译细节
     parser.add_argument("--chunk_size", type=int, default=4000, help="The maximum length of a segmented Latex file block")
@@ -57,7 +58,7 @@ def main(args=None):
 
     options = parser.parse_args(args)
 
-    for option in ["llm_model", "end_point", "qps", "system_prompt", "prompt_template", "chunk_size"]:
+    for option in ["llm_model", "end_point", "qps", "system_prompt", "prompt_template", "chunk_size", "use_cot"]:
         value = getattr(options, option)
         if value:
             setattr(config, option, value)
