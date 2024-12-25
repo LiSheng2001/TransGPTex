@@ -1,5 +1,9 @@
 版本更新说明
 
+## v0.0.15
+deepseek-v3版本似乎在cot格式输出方面会遇到一些错误，因此在这个版本中加入cot格式错误后的重试尝试。
+重试时如果温度继续为0.01，则可能重试后问题仍然存在，因此参考[openai论坛](https://community.openai.com/t/cheat-sheet-mastering-temperature-and-top-p-in-chatgpt-api/172683)这个帖子设置默认temperature=0.2, top_p=0.1。因为latex翻译还是包含一些代码在里面的。
+
 ## v0.0.13
 引入了思维链(cot)，默认是关闭的以节省token，毕竟cot很玄学，也不一定就比让LLM直接翻译好。开启之后，会让LLM根据要翻译的段落先进行思考，思考之后再进行正式翻译，以减少LLM翻译的生硬感，提高LLM的准确性。
 目前的cot仅加入思考流程，未来可以考虑将论文标题和论文摘要当作上下文输入给模型，以让LLM感知到要翻译的论文片段对应的上下文信息。

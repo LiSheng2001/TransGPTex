@@ -29,6 +29,12 @@ class RateLimiter:
         
         self.tokens -= 1
 
+class RetryException(Exception):
+    """重试的异常类"""
+    def __init__(self, message, status_code=400):
+        super().__init__(message)
+        self.status_code = status_code
+
 async def fetch(session, url, rate_limiter):
     await rate_limiter.acquire()
     async with session.get(url) as response:
@@ -80,7 +86,8 @@ class Translator:
                 }
             ],
             model=config.llm_model,
-            temperature=0.01,
+            temperature=config.temperature,
+            top_p=config.top_p
         )
 
         self.num_of_completed_requests += 1
@@ -91,11 +98,17 @@ class Translator:
         content = completion.choices[0].message.content
         if config.use_cot:
             pattern = r'\[result\]\s*content\s*=\s*"""\s*\n(.*?)\s*\n"""'
+            # deepseek会出现奇怪的bug，就是会把最后的"""\n```变成```\n```，这边手动替换一下
+            if content.endswith('\n```\n```'):
+                content = content.rstrip('\n```\n```') + '\n"""\n```'
+
             result = re.search(pattern, content, re.DOTALL)
             if result:
                 content = result.group(1)
             else:
-                print("cot返回结果的格式错误!")
+                print("cot返回结果的格式错误!准备重试...")
+                self.num_of_completed_requests -= 1
+                raise RetryException("cot格式错误，重试请求...")
 
         return content
     
@@ -118,8 +131,9 @@ class Translator:
             # 将结果输入聚合到结果列表
             for i, call_result in enumerate(call_results):
                 if isinstance(call_result, Exception):
-                    # 待实现，主要是实现429的重试
-                    if call_result.status_code == 429:
+                    if isinstance(call_result, RetryException):
+                        continue
+                    elif call_result.status_code == 429:
                         print(f"触发频次限制...如果频繁出现可能说明qps设置过大...")
                         continue
                     elif call_result.status_code == 400:

@@ -42,6 +42,8 @@ def main(args=None):
     parser.add_argument("--system_prompt", type=str, default=None)
     parser.add_argument("--prompt_template", type=str, default=None)
     parser.add_argument("--use_cot", action='store_true', help="whether to use cot prompt")
+    parser.add_argument("--temperature", type=float, default=0.2)
+    parser.add_argument("--top_p", type=float, default=0.1)
 
     # 翻译细节
     parser.add_argument("--chunk_size", type=int, default=4000, help="The maximum length of a segmented Latex file block")
@@ -58,7 +60,7 @@ def main(args=None):
 
     options = parser.parse_args(args)
 
-    for option in ["llm_model", "end_point", "qps", "system_prompt", "prompt_template", "chunk_size", "use_cot"]:
+    for option in ["llm_model", "end_point", "qps", "system_prompt", "prompt_template", "chunk_size", "use_cot", "temperature", "top_p"]:
         value = getattr(options, option)
         if value:
             setattr(config, option, value)

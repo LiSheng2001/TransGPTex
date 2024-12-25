@@ -53,6 +53,8 @@ Below is the LaTeX paper excerpt:
 {}
 \"\"\"
 """
+    temperature=0.2, 
+    top_p=0.1, 
 
 
 config = Config()
