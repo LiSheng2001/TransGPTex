@@ -82,14 +82,12 @@ def generate_tex_chunks(tex_file_path: str):
     return tex_texts, holder_index_to_content
 
 
-command_adhesion_pattern = re.compile(r"(?<=[\u4e00-\u9fa5\u3000-\u303f\uFF00-\uFFEF])(\\[a-zA-Z\d\{\}_\-]*)(?=[\u4e00-\u9fa5\u3000-\u303f\uFF00-\uFFEF])")
-command_adhesion_pattern2 = re.compile(r"(\\[a-zA-Z\d\{\}_\-]*)(?=[\u4e00-\u9fa5\u3000-\u303f\uFF00-\uFFEF])")
+command_adhesion_pattern = re.compile(r"(\\[a-zA-Z\d_\-]*)(?=[\u4e00-\u9fa5\u3000-\u303f\uFF00-\uFFEF])")
 
 
 def handle_command_adhesion(text):
-    # 处理命令粘连问题，比如`一种基于\modelname的数据选择器`处理为`一种基于 \modelname 的数据选择器`从而减少编译错误
-    text = command_adhesion_pattern.sub(r" \1 ", text)
-    text = command_adhesion_pattern2.sub(r"\1 ", text)
+    # 处理命令粘连问题，比如`一种基于\modelname的数据选择器`处理为`一种基于\modelname{}的数据选择器`从而减少编译错误
+    text = command_adhesion_pattern.sub(r"\1{}", text)
     return text
 
 def postprocess_tex_line(text):

@@ -1,5 +1,9 @@
 版本更新说明
 
+## v0.0.16
+主要是填v0.0.10的一个坑：编译时会把`\modelname`解读为`\modelname的数据选择器`从而编译出现问题。在本版本应用了后处理，通过给它们前后添加空格来避免编译时的歧义。
+虽然前后加空格可以减少编译错误，但也导致`\modelname`左右出现多余的空格。这在`\modelname`对应的字符串是英文时尚且不明显，但如果LLM将命令对应的文本也翻译为中文就会产生额外的空格，显得比较割裂。因此，在本版本选择直接闭合无参数命令，即`\modelname`改写为`\modelname{}`
+
 ## v0.0.15
 deepseek-v3版本似乎在cot格式输出方面会遇到一些错误，因此在这个版本中加入cot格式错误后的重试尝试。
 重试时如果温度继续为0.01，则可能重试后问题仍然存在，因此参考[openai论坛](https://community.openai.com/t/cheat-sheet-mastering-temperature-and-top-p-in-chatgpt-api/172683)这个帖子设置默认temperature=0.2, top_p=0.1。因为latex翻译还是包含一些代码在里面的。
