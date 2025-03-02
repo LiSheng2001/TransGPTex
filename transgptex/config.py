@@ -12,7 +12,7 @@ class Config:
     llm_model: str = "gpt-4o-mini"
     end_point: str = "https://api.openai.com/v1/"
     api_key: str = os.environ.get("LLM_API_KEY")
-    qps: int = 3
+    num_concurrent: int = 100
     chunk_size: int = 4000
     system_prompt: str = "You are a professional, authentic machine translation engine."
     promt_template: str = """\
@@ -55,6 +55,7 @@ Below is the LaTeX paper excerpt:
 """
     temperature=0.2, 
     top_p=0.1, 
+    fix_hyphen=True
 
 
 config = Config()

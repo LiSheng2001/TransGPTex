@@ -36,7 +36,7 @@ def main(args=None):
     parser.add_argument("-llm_model", type=str, help="Select the LLM model to use", default="gpt-4o-mini")
     parser.add_argument("-end_point", type=str, help="Inference endpoint url", default="https://api.openai.com/v1//")
     parser.add_argument("-ENV_API_KEY_NAME", type=str, help="The name of the environment variable that holds the API KEY, which defaults to `LLM_API_KEY`", default="LLM_API_KEY")
-    parser.add_argument("-qps", type=int, default=5, help="Queries per second of LLM API")
+    parser.add_argument("-num_concurrent", type=int, default=100, help="The number of parallel requests made to the LLM API")
 
     # 翻译的prompt设置
     parser.add_argument("--system_prompt", type=str, default=None)
@@ -44,6 +44,9 @@ def main(args=None):
     parser.add_argument("--use_cot", action='store_true', help="whether to use cot prompt")
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--top_p", type=float, default=0.1)
+
+    # 翻译的后处理
+    parser.add_argument("--not_fix_hyphen", action="store_true", help="Disable hyphen space fix")
 
     # 翻译细节
     parser.add_argument("--chunk_size", type=int, default=4000, help="The maximum length of a segmented Latex file block")
@@ -60,10 +63,11 @@ def main(args=None):
 
     options = parser.parse_args(args)
 
-    for option in ["llm_model", "end_point", "qps", "system_prompt", "prompt_template", "chunk_size", "use_cot", "temperature", "top_p"]:
+    for option in ["llm_model", "end_point", "num_concurrent", "system_prompt", "prompt_template", "chunk_size", "use_cot", "temperature", "top_p"]:
         value = getattr(options, option)
         if value:
             setattr(config, option, value)
+    config.fix_hyphen = not options.not_fix_hyphen
 
     # 配置APIKEY
     config.api_key = os.environ.get(options.ENV_API_KEY_NAME, None)

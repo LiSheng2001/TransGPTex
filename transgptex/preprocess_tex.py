@@ -45,54 +45,82 @@ def search_bib_tex(file_dir: str):
 # 辅助的正则表达式
 comment_pattern = re.compile(r"(?<!\\)%.*")
 consecutive_line_breaks_pattern = re.compile(r"\n{3,}")
-bibliography_pattern = re.compile(r"\n?\\begin{thebibliography}.*?\\end{thebibliography}", re.DOTALL)
-include_or_input_pattern = re.compile(r"\n?(\\input|\\include|\\usepackage|\\newcommand|\\def).*")
-equation_pattern = re.compile(r"\n?\\begin{equation\*?}.*?\\end{equation\*?}", re.DOTALL)
-align_pattern = re.compile(r"\n?\\begin{align\*?}.*?\\end{align\*?}", re.DOTALL)
+bibliography_pattern = re.compile(r"^[ \t]*\\begin{thebibliography}.*?\\end{thebibliography}[ \t]*",re.MULTILINE | re.DOTALL)
+equation_pattern = re.compile(r"^[ \t]*\\begin{equation\*?}(?:(?!\\end{equation\*?}).)*\\end{equation\*?}[ \t]*(?=\s*(?:\n|\Z))", re.MULTILINE | re.DOTALL)
+align_pattern = re.compile(r"^[ \t]*\\begin{align\*?}(?:(?!\\end{align\*?}).)*\\end{align\*?}[ \t]*(?=\s*(?:\n|\Z))", re.MULTILINE | re.DOTALL)
 single_line_comments = re.compile(r'^\s*%.*\n?', re.MULTILINE) # 查找独立的单行注释
 table_pattern = re.compile(r"^[ \t]*\\begin{(?:table|figure|axis)\*?}.*?\\end{(?:table|figure|axis)\*?}", re.MULTILINE | re.DOTALL) # 查找表格、图片和axis
 pdfoutput_pattern = re.compile(r"\\pdfoutput=1")
+# 将\usepackage, \def等可能跨越多行的命令使用find_scope的方式去替换
+target_fn_names = ["input", "include", "usepackage", "def", "newcommand", "renewcommand", "let", "providecommand"]
 
 
 # 搜索tex中的函数体，因为存在嵌套关系没办法用正则简单地解决，因此通过遍历进行嵌套匹配
-def match_nested_method_calls(s: str, method_name: str, left_char="{", right_char="}"):
-    def find_matching_paren(s, start):
-        stack = []
-        i = start
-        while i < len(s):
-            if s[i] == left_char:
-                stack.append(i)
-            elif s[i] == right_char:
-                stack.pop()
-                if not stack:
-                    return i
-            elif s[i] == "\\":
-                # 处理转义符，实际是跳过下一个字符
-                i += 1
-            elif s[i] == "%":
-                # 处理注释，注释里的括号不作统计
-                i += 1
-                while i < len(s) and s[i] != "\n":
-                    i += 1
-            i += 1
-        return -1
+def find_scopes(content, fn_name):
+    """
+    找到以 \fn_name 开头的作用域，并返回匹配的字符串列表。
 
-    pattern = r"^[ \t]*" + re.escape(method_name) + f"\\{left_char}"
-    matches = []
+    :param content: 输入的 LaTeX 文本内容（字符串）。
+    :param fn_name: 要匹配的命令名称（如 "usepackage"）。
+    :return: 匹配的作用域列表。
+    """
+    # 正则表达式匹配以 \fn_name 开头的行
+    pattern = re.compile(rf"\s*\\{fn_name}\b")
+    
+    # 初始化结果列表
+    scopes = []
+    
+    # 按行分割输入内容
+    lines = content.splitlines()
     i = 0
-
-    while i < len(s):
-        match = re.search(pattern, s[i:], re.MULTILINE)
-        if not match:
-            break
-        start = i + match.start()
-        end = find_matching_paren(s, start + len(method_name))
-        if end != -1:
-            matches.append(s[start:end + 1])
-            i = end + 1
-        else:
-            i = start + len(method_name)
-    return matches
+    while i < len(lines):
+        line = lines[i].strip()
+        
+        # 如果当前行匹配 \fn_name
+        if pattern.match(line):
+            # 初始化作用域内容
+            scope = line
+            bracket_stack = []  # 用于跟踪未闭合的括号
+            
+            # 分析当前行的内容，寻找未闭合的括号
+            for char in line:
+                if char == '[':
+                    bracket_stack.append('[')
+                elif char == ']':
+                    if bracket_stack and bracket_stack[-1] == '[':
+                        bracket_stack.pop()
+                elif char == '{':
+                    bracket_stack.append('{')
+                elif char == '}':
+                    if bracket_stack and bracket_stack[-1] == '{':
+                        bracket_stack.pop()
+            
+            # 如果还有未闭合的括号，继续读取后续行
+            while bracket_stack and i + 1 < len(lines):
+                i += 1
+                next_line = lines[i]
+                scope += "\n" + next_line
+                
+                # 继续分析后续行的内容
+                for char in next_line:
+                    if char == '[':
+                        bracket_stack.append('[')
+                    elif char == ']':
+                        if bracket_stack and bracket_stack[-1] == '[':
+                            bracket_stack.pop()
+                    elif char == '{':
+                        bracket_stack.append('{')
+                    elif char == '}':
+                        if bracket_stack and bracket_stack[-1] == '{':
+                            bracket_stack.pop()
+            
+            # 将完整的作用域添加到结果列表
+            scopes.append(scope)
+        
+        # 移动到下一行
+        i += 1
+    
+    return scopes
 
 def merge_placeholders(input_text: str, holder_index_to_content: List[str]):
     """\
@@ -157,13 +185,21 @@ def preprocess_tex_content(tex_content: str):
         nonlocal replace_holder_counter
         replace_holder_counter += 1
         holder_index_to_content.append(match.group(0).strip())
-        return f'\nls_replace_holder_{replace_holder_counter}'
+        return f'ls_replace_holder_{replace_holder_counter}'
 
     # 开始替换
     tex_content = bibliography_pattern.sub(replacement_helper, tex_content)
     tex_content = equation_pattern.sub(replacement_helper, tex_content)
     tex_content = align_pattern.sub(replacement_helper, tex_content)
-    tex_content = include_or_input_pattern.sub(replacement_helper, tex_content)
+
+    # 特殊命令替换
+    for target_fn_name in target_fn_names:
+        target_scopes = find_scopes(tex_content, target_fn_name)
+        # 替换
+        for target_scope in target_scopes:
+            replace_holder_counter += 1
+            tex_content = tex_content.replace(target_scope, f"ls_replace_holder_{replace_holder_counter}")
+            holder_index_to_content.append(target_scope)
 
     # 注入中文宏
     for i, holder_content in enumerate(holder_index_to_content):

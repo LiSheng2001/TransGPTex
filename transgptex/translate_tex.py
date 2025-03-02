@@ -104,6 +104,11 @@ def postprocess_tex_content(translated_tex_texts: List[str], original_tex_texts:
         if "\end{document}" in translated_tex_texts[i] and "\end{document}" not in original_tex_texts[i]:
             translated_tex_texts[i] = translated_tex_texts[i].replace("\end{document}", "")
 
+        # doubao-1.5-pro-32k会自作主张在"-"左右加空格，比如"gpt-4o"会变成"gpt - 4o"
+        # 因为这是激进地后处理手段，可能会带来其他影响，在config内提供关闭的选项
+        if config.fix_hyphen:
+            translated_tex_texts[i] = re.sub(r'\s*-\s*', '-', translated_tex_texts[i])
+
     translated_tex = "\n".join(translated_tex_texts)
 
     # 后处理，把占位符还原
