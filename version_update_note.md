@@ -1,5 +1,13 @@
 版本更新说明
 
+## v0.1.1
+- 优化版本号显示，目前使用`tgtex -v`或`tgtex --version`即可显示当前版本号
+- 修复特殊命令替换逻辑时使用`replace`替换导致短命令部分替换长命令而造成的解析错误。
+
+比如如果在先前匹配到`\renewcommand{\arraystretch}{0.9}`，如果后面有某行是`\renewcommand{\arraystretch}{0.9} %`，`replace`会将该行替换为`ls_replace_holder_0 %`从而导致后续解析出现问题。因为`find_scope`一定是从某行开头到另一行结尾，因此可以使用正则表达式加入这个先验，通过`rf"^{re.escape(target_scope)}$"`实现更精准的替换。
+
+- 
+
 ## v0.1.0
 发布了0.1.0版本，在该版本中优化了0.16.0的很多问题：
 1. 通过后处理修复`Doubao-1.5-pro-32k`模型喜欢在连字符"-"左右加空格的问题。如果这个功能影响了其他的tex命令，可以在命令行内添加`--not_fix_hyphen`禁用此功能。

@@ -91,6 +91,9 @@ tgtex --single_tex -o output.tex path/to/your/latex/file.tex
 
 # 获取帮助
 tgtex -h
+
+# 显示版本
+tgtex -v
 ```
 
 几个核心的配置：

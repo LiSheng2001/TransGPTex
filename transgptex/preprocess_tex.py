@@ -67,14 +67,14 @@ def find_scopes(content, fn_name):
     # 正则表达式匹配以 \fn_name 开头的行
     pattern = re.compile(rf"\s*\\{fn_name}\b")
     
-    # 初始化结果列表
-    scopes = []
+    # 先通过集合来去重
+    scopes = set()
     
     # 按行分割输入内容
     lines = content.splitlines()
     i = 0
     while i < len(lines):
-        line = lines[i].strip()
+        line = lines[i]
         
         # 如果当前行匹配 \fn_name
         if pattern.match(line):
@@ -115,12 +115,13 @@ def find_scopes(content, fn_name):
                             bracket_stack.pop()
             
             # 将完整的作用域添加到结果列表
-            scopes.append(scope)
+            scopes.add(scope)
         
         # 移动到下一行
         i += 1
     
-    return scopes
+    # 返回一个列表，按字符数从多到少排序以减少替换冲突
+    return sorted(scopes, key=len, reverse=True)
 
 def merge_placeholders(input_text: str, holder_index_to_content: List[str]):
     """\
@@ -198,7 +199,10 @@ def preprocess_tex_content(tex_content: str):
         # 替换
         for target_scope in target_scopes:
             replace_holder_counter += 1
-            tex_content = tex_content.replace(target_scope, f"ls_replace_holder_{replace_holder_counter}")
+            # 替换时注意所有的scope遵循以行首开头并且以行末结尾，因此用`re`模块能更精准地替换
+            # 避免出现有位置`\renewcommand{\arraystretch}{0.9}`
+            # 导致把`\renewcommand{\arraystretch}{0.9} %`也部分替换了导致出错
+            tex_content = re.sub(rf"^{re.escape(target_scope)}$", f"ls_replace_holder_{replace_holder_counter}", tex_content, flags=re.MULTILINE)
             holder_index_to_content.append(target_scope)
 
     # 注入中文宏

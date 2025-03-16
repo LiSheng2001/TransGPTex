@@ -9,6 +9,7 @@ from .download_paper import download_paper_source, get_arxiv_id, extract_tar_gz,
 from .file_selector import select_file
 from .preprocess_tex import search_main_tex, search_bib_tex
 from .translate_tex import translate_single_tex
+from . import __version__
 from .config import config
 import os
 import re
@@ -26,6 +27,10 @@ def main(args=None):
     '''
     import argparse
     parser = argparse.ArgumentParser()
+
+    # 版本号
+    parser.add_argument("--version", "-v", action="version", version=f"TransGPTex {__version__}", help="Show the version number and exit")
+
     parser.add_argument("url", help='arxiv paper url')
     parser.add_argument("-o", type=str, help='output path', default="default:path")
     # 翻译模式，默认翻译arXiv项目
