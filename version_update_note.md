@@ -1,12 +1,18 @@
 版本更新说明
 
+## v0.1.2
+- 修复非标准openai格式的api端点重复尝试的问题，关联问题[#2](https://github.com/LiSheng2001/TransGPTex/issues/2)。目前遇到api的非标准错误将直接打印错误，并回退该段为原文以保全其他已经完成的翻译结果。
+- 修复命令行设置系统prompt、用户prompt以及cot prompt的功能，关联问题[#4](https://github.com/LiSheng2001/TransGPTex/issues/4)。之前虽然预留了`--prompt_template`，但变量拼写错了导致一直没指定上。并且因为`cmd`对多行字符串支持较差，实际很难进行设置。
+
+    因此，在新版本中使用了对多行字符串支持更好的`toml`配置文件进行配置，只需要在运行命令行的目录下配置`prompts.toml`文件并写入相关提示即可。更详细的效果可以参见文档`进阶使用`部分。
+- 将异步请求模块的速率锁`rate_limiter`更改到任务执行时进行初始化，修复[问题](https://blog.csdn.net/whatday/article/details/106886621)。并且根据[方案](https://stackoverflow.com/questions/45600579/asyncio-event-loop-is-closed-when-getting-loop)修复`Windows`下协程报错"Asyncio Event Loop is Closed"的问题。
+
 ## v0.1.1
 - 优化版本号显示，目前使用`tgtex -v`或`tgtex --version`即可显示当前版本号
 - 修复特殊命令替换逻辑时使用`replace`替换导致短命令部分替换长命令而造成的解析错误。
 
-比如如果在先前匹配到`\renewcommand{\arraystretch}{0.9}`，如果后面有某行是`\renewcommand{\arraystretch}{0.9} %`，`replace`会将该行替换为`ls_replace_holder_0 %`从而导致后续解析出现问题。因为`find_scope`一定是从某行开头到另一行结尾，因此可以使用正则表达式加入这个先验，通过`rf"^{re.escape(target_scope)}$"`实现更精准的替换。
+    比如如果在先前匹配到`\renewcommand{\arraystretch}{0.9}`，如果后面有某行是`\renewcommand{\arraystretch}{0.9} %`，`replace`会将该行替换为`ls_replace_holder_0 %`从而导致后续解析出现问题。因为`find_scope`一定是从某行开头到另一行结尾，因此可以使用正则表达式加入这个先验，通过`rf"^{re.escape(target_scope)}$"`实现更精准的替换。
 
-- 
 
 ## v0.1.0
 发布了0.1.0版本，在该版本中优化了0.16.0的很多问题：

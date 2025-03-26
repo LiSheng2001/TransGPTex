@@ -6,12 +6,16 @@ Usage: 在QPS不超限情况下用异步尽快完成调用
 
 import asyncio
 from openai import AsyncOpenAI
-import os
+import sys
 import re
 
 from typing import Any, List, Optional, Union
 from .config import config
 
+# 避免windows下事件循环的异常
+import platform
+if platform.system()=='Windows':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 class RetryException(Exception):
     """重试的异常类"""
@@ -28,11 +32,11 @@ class Translator:
         )
 
         # 并发锁
-        self.rate_limiter = asyncio.Semaphore(config.num_concurrent)
+        self.rate_limiter = None
 
         # 翻译的prompt
         self.system_prompt = config.system_prompt
-        self.promt_template = config.promt_template
+        self.prompt_template = config.prompt_template
 
         # cot的prompt
         self.cot_prompt = config.cot_prompt_template
@@ -45,7 +49,7 @@ class Translator:
         # 选择是否使用COT
         if not config.use_cot:
             system_prompt = self.system_prompt
-            prompt = self.promt_template.format(language_to, text)
+            prompt = self.prompt_template.format(language_to, text)
         else:
             system_prompt = ""
             prompt = self.cot_prompt.format(language_to, text)
@@ -93,6 +97,9 @@ class Translator:
         undo_of_texts = [1] * len(texts)
         results = [None] * len(texts)
         epoch = 0
+
+        # 创建并发锁，之前在循环外创建可能会报错
+        self.rate_limiter = asyncio.Semaphore(config.num_concurrent)
         
         while sum(undo_of_texts) > 0 and epoch < max_epoches:
             task_list = []
@@ -123,12 +130,12 @@ class Translator:
                             print(f"触发风控机制，该部分回退为原文...")
                             need_backtracing = True
                         else:
-                            raise call_result
+                            need_throw_exception = True
                     else:
                         # 这里是未知的错误，为了保证翻译正常进行仅打印该错误
-                        # 同样如429错误一般将该部分回退为原文
+                        # 同样如400错误一般将该部分回退为原文
                         print(f"未处理的异常: {call_result}")
-                        continue
+                        need_backtracing = True
 
                     # 处理责任
                     if need_retry:
@@ -157,8 +164,7 @@ class Translator:
         self.num_of_completed_requests = 0
         # 异步请求
         print(f"开始请求API进行翻译，总请求数: {self.num_of_requests}")
-        loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(self._translate_batch(texts, language_to))
+        result = asyncio.run(self._translate_batch(texts, language_to))
         print(f"请求完成，开始执行后续操作...")
 
         return result

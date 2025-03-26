@@ -2,6 +2,7 @@ output*/
 test*/
 test*.py
 *.pyc
+prompts.toml
 
 build/
 dist/

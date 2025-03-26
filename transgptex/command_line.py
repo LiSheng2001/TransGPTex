@@ -17,6 +17,11 @@ import sys
 import dataclasses
 import shutil
 import subprocess
+# 兼容旧版本python
+if sys.version_info >= (3, 11):
+    import tomllib as toml
+else:
+    import toml
 
 
 def main(args=None):
@@ -46,6 +51,7 @@ def main(args=None):
     # 翻译的prompt设置
     parser.add_argument("--system_prompt", type=str, default=None)
     parser.add_argument("--prompt_template", type=str, default=None)
+    parser.add_argument("--cot_prompt_template", type=str, default=None)
     parser.add_argument("--use_cot", action='store_true', help="whether to use cot prompt")
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--top_p", type=float, default=0.1)
@@ -68,17 +74,35 @@ def main(args=None):
 
     options = parser.parse_args(args)
 
-    for option in ["llm_model", "end_point", "num_concurrent", "system_prompt", "prompt_template", "chunk_size", "use_cot", "temperature", "top_p"]:
+    for option in ["llm_model", "end_point", "num_concurrent", "system_prompt", "prompt_template", "chunk_size", "use_cot", "temperature", "top_p", "cot_prompt_template"]:
         value = getattr(options, option)
-        if value:
+        if value is not None:
             setattr(config, option, value)
     config.fix_hyphen = not options.not_fix_hyphen
 
     # 配置APIKEY
     config.api_key = os.environ.get(options.ENV_API_KEY_NAME, None)
     if not config.api_key:
-        print(f"请在 {options.ENV_API_KEY_NAME} 环境变量中设置API KEY为空，请检查")
+        print(f"请在 {options.ENV_API_KEY_NAME} 环境变量中设置API KEY，目前该环境变量不存在或为空，请检查")
         sys.exit(101)
+
+
+    # 如果当前目录下存在用户自己编写的提示模板，加载用户的提示模板
+    if os.path.exists("./prompts.toml"):
+        # 加载该模板作为提示词
+        try:
+            with open("./prompts.toml", "r", encoding="utf-8") as prompt_config_file:
+                prompt_config_string = prompt_config_file.read()
+            prompt_config = toml.loads(prompt_config_string)
+            # 获取字段
+            for option in ["prompt_template", "system_prompt", "cot_prompt_template"]:
+                if prompt_config.get(option, None) is not None:
+                    setattr(config, option, prompt_config[option])
+
+        except Exception as e:
+            print(f"解析当前 prompt.toml 时发生错误: {e}")
+            print("当前目录下的 prompt.ini 配置文件可能存在错误，已忽略")
+
     
     # 打印参数，主要用于Debug
     if getattr(options, "print_config"):
@@ -90,6 +114,7 @@ def main(args=None):
             if field.name == "api_key":
                 continue
             print(f"{field.name}:\t {getattr(config, field.name)}")
+        sys.exit(123)
 
 
     # 解参数

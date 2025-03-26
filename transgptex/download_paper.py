@@ -13,7 +13,7 @@ def get_arxiv_id(url: str):
     if url.startswith("https://"):
         url = url.lstrip("https://")
     elif url.startswith("http://"):
-        url = url.lstrip("https://")
+        url = url.lstrip("http://")
     
     # 去除www.
     if url.startswith("www."):

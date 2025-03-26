@@ -113,5 +113,9 @@ export LLM_API_KEY="deepseek api key"
 tgtex https://arxiv.org/abs/paper_id -o output/path -llm_model deepseek-chat -end_point https://api.deepseek.com/v1
 ```
 
+
+## 进阶使用
+需要更加个性化需求的用户可以[查看文档](./docs/Advanced_Usage.md)
+
 ## 许可
 TransGPTex 项目采用 MIT 许可证。

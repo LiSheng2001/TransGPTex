@@ -21,6 +21,7 @@ setuptools.setup(
     install_requires=[
         "openai", 
         "arxiv", 
+        "toml; python_version < '3.11'"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
